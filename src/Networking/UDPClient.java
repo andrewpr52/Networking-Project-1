@@ -3,50 +3,69 @@ package Networking;
 import java.io.IOException;
 import java.net.*;
 
-public class UDPClient 
+public class UDPClient implements Runnable
 {
     DatagramSocket Socket;
+    private int msDelay;
+    private int uptime;
 
-    public UDPClient() 
+    public UDPClient()
     {
-
+        msDelay = 5000;
+        uptime = -msDelay;
     }
 
-    public void createAndListenSocket() 
+    private void incUptime()
     {
-        try 
+        uptime += msDelay;
+    }
+
+    private int getUptime()
+    {
+        return uptime;
+    }
+
+    public void run()
+    {
+        try
         {
             Socket = new DatagramSocket();
             InetAddress IPAddress = InetAddress.getByName("localhost");
             byte[] incomingData = new byte[1024];
-            String sentence = "Viehmann";
-            byte[] data = sentence.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, 9876);
-            Socket.send(sendPacket);
-            System.out.println("Message sent from client");
-            DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
-            Socket.receive(incomingPacket);
-            String response = new String(incomingPacket.getData());
-            System.out.println("Response from server:" + response);
-            Socket.close();
+            int packetNum = 1;
+
+            while (true)
+            {
+                String sentence = "packet " + Integer.toString(packetNum);
+                byte[] data = sentence.getBytes();
+                DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, 9876);
+                Socket.send(sendPacket);
+                System.out.println("Message sent from client");
+                packetNum++;
+
+                DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+                Socket.receive(incomingPacket);
+                String response = new String(incomingPacket.getData());
+                System.out.println("Response from server: " + response);
+
+                this.incUptime();
+                System.out.println("Client uptime: " + this.getUptime() + "ms\n");
+                Thread.sleep(msDelay);
+            }
         }
-        catch (UnknownHostException e) 
+        catch (IOException e)
         {
             e.printStackTrace();
-        } 
-        catch (SocketException e) 
-        {
-            e.printStackTrace();
-        } 
-        catch (IOException e) 
+        }
+        catch (InterruptedException e)
         {
             e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) 
+    public static void main(String[] args)
     {
         UDPClient client = new UDPClient();
-        client.createAndListenSocket();
+        client.run();
     }
 }
